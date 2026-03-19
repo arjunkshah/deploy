@@ -22,6 +22,9 @@ const sections = [
   { id: "database", label: "Database schema" },
   { id: "architecture", label: "Architecture" },
   { id: "observability", label: "Observability" },
+  { id: "environment", label: "Environment setup" },
+  { id: "ci-cd", label: "CI/CD" },
+  { id: "faq", label: "FAQ" },
   { id: "testing", label: "Testing" },
   { id: "troubleshooting", label: "Troubleshooting" }
 ];
@@ -318,6 +321,63 @@ DEPLOY_WORKER_POLL_MS=5000`}
             </p>
             <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
               Tip: filter by `"[deploy]"` and `"[worker]"` prefixes to isolate deployment flows.
+            </div>
+          </section>
+
+          <section id="environment" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Environment setup</h2>
+            <p className="text-sm text-muted-foreground">
+              Required environment variables are split between the app and the worker. Keep secrets in Vercel and
+              double-check they match your deployed domain.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">App</p>
+                <p className="mt-2">GITHUB_TOKEN, VERCEL_TOKEN, POSTGRES_URL, NEXTAUTH_SECRET</p>
+              </div>
+              <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Worker</p>
+                <p className="mt-2">POSTGRES_URL, VERCEL_TOKEN, DEPLOY_WORKER_POLL_MS</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="ci-cd" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">CI/CD</h2>
+            <p className="text-sm text-muted-foreground">
+              CI runs linting and tests on every pull request. Keep deployments gated behind the main branch to avoid
+              deploying unreviewed builds.
+            </p>
+            <pre className="overflow-x-auto rounded-xl border border-border/70 bg-muted/30 p-4 text-xs text-muted-foreground">
+{`name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npm ci
+      - run: npm run test`}
+            </pre>
+          </section>
+
+          <section id="faq" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">FAQ</h2>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div>
+                <p className="font-medium text-foreground">Can I deploy non-Next apps?</p>
+                <p>Yes. Deploy.com forwards repo builds to Vercel without framework assumptions.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Why does it say queued?</p>
+                <p>The worker VM picks up the job. Ensure it is running and has network access.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">How do I extend TTL?</p>
+                <p>Update the cleanup logic and schedule in `/api/cleanup` to extend expiration windows.</p>
+              </div>
             </div>
           </section>
 
