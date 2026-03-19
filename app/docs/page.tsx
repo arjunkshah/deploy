@@ -13,9 +13,12 @@ const sections = [
   { id: "auth", label: "Authentication" },
   { id: "agentbar", label: "AgentBar widget" },
   { id: "worker", label: "Worker (large repos)" },
+  { id: "pipeline", label: "Deployment pipeline" },
+  { id: "rate-limits", label: "Rate limits" },
   { id: "api", label: "API" },
   { id: "domains", label: "Custom domains" },
   { id: "cleanup", label: "Cleanup" },
+  { id: "security", label: "Security" },
   { id: "testing", label: "Testing" },
   { id: "troubleshooting", label: "Troubleshooting" }
 ];
@@ -77,7 +80,10 @@ export default function DocsPage() {
                 "Custom domains",
                 "Auth-gated deploys",
                 "Automatic cleanup",
-                "Worker for large repos"
+                "Worker for large repos",
+                "Per-deploy history",
+                "Public repo validation",
+                "Status timeline"
               ].map((feature) => (
                 <div key={feature} className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-foreground">
                   {feature}
@@ -174,6 +180,39 @@ POSTGRES_URL=...
 VERCEL_TOKEN=...
 DEPLOY_WORKER_POLL_MS=5000`}
             </pre>
+            <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+              Logs stream from the worker into the `deploy_jobs` table and appear in the status UI in near real time.
+            </div>
+          </section>
+
+          <section id="pipeline" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Deployment pipeline</h2>
+            <p className="text-sm text-muted-foreground">
+              Each deploy moves through a deterministic pipeline. The status page mirrors these steps.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                "QUEUED — waiting for the worker",
+                "CLONING — repository fetch",
+                "DEPLOYING — Vercel build + release",
+                "READY — live URL available",
+                "ERROR — failed; check logs"
+              ].map((step) => (
+                <div key={step} className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-foreground">
+                  {step}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="rate-limits" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Rate limits</h2>
+            <p className="text-sm text-muted-foreground">
+              Deploy.com enforces a per-IP limit to protect the API and build queue.
+            </p>
+            <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+              Default limit: 5 deploys per minute per IP. Adjust in `lib/rate-limit.ts`.
+            </div>
           </section>
 
           <section id="api" className="space-y-4">
@@ -207,6 +246,24 @@ DEPLOY_WORKER_POLL_MS=5000`}
               Deployments expire after 7 days. Trigger `/api/cleanup` via a Vercel cron to remove expired projects and
               database rows.
             </p>
+          </section>
+
+          <section id="security" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Security</h2>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div>
+                <p className="font-medium text-foreground">Secrets</p>
+                <p>Env vars are sent to Vercel as encrypted secrets; avoid logging values in client code.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Public repos only</p>
+                <p>Private repositories require explicit Vercel GitHub App access to be deployable.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Worker isolation</p>
+                <p>Run the worker in a dedicated VM with least-privilege credentials.</p>
+              </div>
+            </div>
           </section>
 
           <section id="testing" className="space-y-4">
