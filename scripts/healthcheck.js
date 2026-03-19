@@ -10,7 +10,7 @@ async function check(path, expectedStatus) {
 async function main() {
   await check("/", 200);
   await check("/docs", 200);
-  await check("/api/status/invalid", 400);
+  await check("/api/status/invalid", 404);
   console.log("Healthcheck passed");
 }
 
