@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Outfit } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
@@ -38,6 +39,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}
           />
           <main className="relative">{children}</main>
+          <Script
+            src="https://agent-pug.vercel.app/agentbar.js"
+            data-site="arjunshah.com"
+            data-api="https://agent-pug.vercel.app"
+            data-depth="1"
+            data-max-pages="15"
+            data-theme-color="#059669"
+            data-position="right"
+            data-title="Site Assistant"
+            data-subtitle="Ask anything about this site."
+            data-button-label="Ask"
+            strategy="afterInteractive"
+          />
         </ThemeProvider>
       </body>
     </html>
