@@ -24,6 +24,9 @@ const sections = [
   { id: "observability", label: "Observability" },
   { id: "environment", label: "Environment setup" },
   { id: "ci-cd", label: "CI/CD" },
+  { id: "runbooks", label: "Runbooks" },
+  { id: "operations", label: "Operations" },
+  { id: "metrics", label: "Metrics" },
   { id: "faq", label: "FAQ" },
   { id: "testing", label: "Testing" },
   { id: "troubleshooting", label: "Troubleshooting" }
@@ -360,6 +363,46 @@ jobs:
         with: { node-version: 20 }
       - run: npm ci
       - run: npm run test`}
+            </pre>
+          </section>
+
+          <section id="runbooks" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Runbooks</h2>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <div>
+                <p className="font-medium text-foreground">Deploy stuck in QUEUED</p>
+                <p>Confirm the worker VM is online and can reach GitHub and Vercel APIs.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">Deployment failed with no URL</p>
+                <p>Check worker logs for `vercel deploy` output; missing URLs indicate CLI failure.</p>
+              </div>
+              <div>
+                <p className="font-medium text-foreground">401 from /api/deploy</p>
+                <p>Verify auth cookies are set and NextAuth URLs match the deployment domain.</p>
+              </div>
+            </div>
+          </section>
+
+          <section id="operations" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Operations</h2>
+            <p className="text-sm text-muted-foreground">
+              Operate the worker as a long-running process with restarts on failure. Rotate Vercel tokens regularly and
+              keep an audit trail of deployments in Postgres.
+            </p>
+            <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+              Suggested cadence: weekly token review, daily cleanup cron, monthly DB vacuum.
+            </div>
+          </section>
+
+          <section id="metrics" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Metrics</h2>
+            <p className="text-sm text-muted-foreground">
+              Track queue depth, time-to-ready, and error rates. These can be derived from the `deploy_jobs` table.
+            </p>
+            <pre className="overflow-x-auto rounded-xl border border-border/70 bg-muted/30 p-4 text-xs text-muted-foreground">
+{`SELECT status, COUNT(*) FROM deploy_jobs GROUP BY status;
+SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) FROM deploy_jobs;`}
             </pre>
           </section>
 
