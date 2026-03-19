@@ -19,6 +19,9 @@ const sections = [
   { id: "domains", label: "Custom domains" },
   { id: "cleanup", label: "Cleanup" },
   { id: "security", label: "Security" },
+  { id: "database", label: "Database schema" },
+  { id: "architecture", label: "Architecture" },
+  { id: "observability", label: "Observability" },
   { id: "testing", label: "Testing" },
   { id: "troubleshooting", label: "Troubleshooting" }
 ];
@@ -263,6 +266,58 @@ DEPLOY_WORKER_POLL_MS=5000`}
                 <p className="font-medium text-foreground">Worker isolation</p>
                 <p>Run the worker in a dedicated VM with least-privilege credentials.</p>
               </div>
+            </div>
+          </section>
+
+          <section id="database" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Database schema</h2>
+            <p className="text-sm text-muted-foreground">
+              Postgres stores deployments, users, domains, and worker job logs. Keep schema changes in migrations and
+              update the API types.
+            </p>
+            <pre className="overflow-x-auto rounded-xl border border-border/70 bg-muted/30 p-4 text-xs text-muted-foreground">
+{`CREATE TABLE deployments (
+  id TEXT PRIMARY KEY,
+  project_id TEXT,
+  repo TEXT,
+  branch TEXT,
+  env_vars JSONB,
+  url TEXT,
+  status TEXT,
+  created_at TIMESTAMP,
+  expires_at TIMESTAMP
+);`}
+            </pre>
+          </section>
+
+          <section id="architecture" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Architecture</h2>
+            <p className="text-sm text-muted-foreground">
+              The App Router serves UI and API routes. Deploy requests validate GitHub, enqueue a job, and stream status
+              updates from Postgres. The worker handles cloning and `vercel deploy` for large repositories.
+            </p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                "UI: App Router + shadcn + Tailwind",
+                "API: /api/deploy, /api/status, /api/deployments",
+                "DB: deployments + deploy_jobs tables",
+                "Worker: clone + vercel deploy --prod"
+              ].map((item) => (
+                <div key={item} className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-foreground">
+                  {item}
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section id="observability" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Observability</h2>
+            <p className="text-sm text-muted-foreground">
+              Server logs are emitted from API routes and the worker. Use Vercel logs for API tracing and VM logs for
+              deploy lifecycle details.
+            </p>
+            <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+              Tip: filter by `"[deploy]"` and `"[worker]"` prefixes to isolate deployment flows.
             </div>
           </section>
 
