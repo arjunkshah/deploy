@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>deploy. — The URL is the CLI</title>
+    
+    <!-- Fonts: Inter for UI, JetBrains Mono for Code/URLs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Tailwind Config for Preview -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        black: '#0a0a0a',
+                        white: '#ffffff',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #ffffff;
+            color: #0a0a0a;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        ::selection {
+            background-color: #0a0a0a;
+            color: #ffffff;
+        }
+        /* Hide scrollbar for clean look in logs */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Framer Motion -->
+    <script src="https://unpkg.com/framer-motion@10.16.4/dist/framer-motion.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-presets="react">
+        const { useState, useEffect, useRef } = React;
+        const { motion, AnimatePresence } = window.Motion;
+
+        // --- Icons (Simulated Lucide via SVG for standalone) ---
+        const IconArrowRight = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>;
+        const IconPlus = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>;
+        const IconTrash = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>;
+        const IconCheck = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>;
+        const IconExternalLink = () => <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>;
+        const IconSettings = () => <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>;
+
+        // --- Layout Component ---
+        const Layout = ({ children, currentPath, navigate }) => {
+            return (
+                <div className="min-h-screen flex flex-col font-sans">
+                    <header className="fixed top-0 w-full bg-white/80 backdrop-blur-md z-50 border-b border-zinc-100">
+                        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+                            <div 
+                                className="font-mono font-medium text-lg cursor-pointer tracking-tighter"
+                                onClick={() => navigate('home')}
+                            >
+                                deploy.
+                            </div>
+                            <nav className="flex items-center gap-6 text-sm">
+                                <button onClick={() => navigate('dashboard')} className={`hover:text-black transition-colors ${currentPath === 'dashboard' ? 'text-black' : 'text-zinc-500'}`}>Dashboard</button>
+                                <div className="w-px h-4 bg-zinc-200"></div>
+                                <div className="h-8 w-8 bg-zinc-100 rounded-full flex items-center justify-center text-xs font-mono border border-zinc-200">
+                                    AS
+                                </div>
+                            </nav>
+                        </div>
+                    </header>
+                    <main className="flex-grow pt-16">
+                        {children}
+                    </main>
+                </div>
+            );
+        };
+
+        // --- Page: Home ---
+        const Home = ({ navigate }) => {
+            const [url, setUrl] = useState('github.com/arjunkshah/pincer');
+            const [isHovered, setIsHovered] = useState(false);
+
+            return (
+                <motion.div 
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                    className="max-w-6xl mx-auto px-6 py-32 flex flex-col items-center justify-center min-h-[80vh] text-center"
+                >
+                    <h1 className="text-5xl md:text-[5vw] font-medium tracking-tight leading-tight mb-6">
+                        The URL is the CLI.
+                    </h1>
+                    <p className="text-zinc-500 text-lg md:text-xl max-w-2xl mb-16 font-light">
+                        Don't connect accounts. Don't write config files. Just replace <span className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-black text-sm">github.com</span> with <span className="font-mono bg-zinc-100 px-1 py-0.5 rounded text-black text-sm">deploydotcom.vercel.app</span> in your browser.
+                    </p>
+
+                    <div 
+                        className="relative w-full max-w-3xl"
+                        onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)}
+                    >
+                        <div className="absolute inset-0 -mx-4 -my-4 border border-zinc-100 bg-zinc-50/50 rounded-xl -z-10 transition-all duration-500"></div>
+                        <div className="flex items-center text-left text-xl md:text-3xl font-mono tracking-tight text-zinc-400 p-6 bg-white border border-zinc-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] rounded-lg overflow-hidden">
+                            <span className="mr-1">https://</span>
+                            <div className="relative inline-block h-[1.2em] overflow-hidden min-w-[200px]">
+                                <AnimatePresence mode="popLayout">
+                                    {!isHovered ? (
+                                        <motion.span 
+                                            key="github"
+                                            initial={{ y: "100%", opacity: 0 }}
+                                            animate={{ y: 0, opacity: 1 }}
+                                            exit={{ y: "-100%", opacity: 0 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                            className="absolute left-0 text-zinc-900"
+                                        >
+                                            github.com
+                                        </motion.span>
+                                    ) : (
+                                        <motion.span 
+                                            key="deploy"
+                                            initial={{ y: "100%", opacity: 0 }}
+                                            animate={{ y: 0, opacity: 1 }}
+                                            exit={{ y: "-100%", opacity: 0 }}
+                                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                            className="absolute left-0 text-black font-medium"
+                                        >
+                                            deploydotcom.vercel.app
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+                            <span className="text-zinc-900 ml-1">/arjunkshah/pincer</span>
+                        </div>
+                    </div>
+
+                    <div className="mt-16 flex items-center gap-4">
+                        <span className="text-sm text-zinc-400">Or try it manually:</span>
+                        <div className="flex items-center border border-zinc-200 rounded-md overflow-hidden bg-white">
+                            <input 
+                                type="text" 
+                                value={url}
+                                onChange={(e) => setUrl(e.target.value)}
+                                className="px-4 py-2 w-80 font-mono text-sm outline-none text-zinc-600 focus:text-black"
+                                placeholder="github.com/user/repo"
+                            />
+                            <button 
+                                onClick={() => navigate('setup')}
+                                className="px-4 py-2 bg-black text-white text-sm font-medium hover:bg-zinc-800 transition-colors border-l border-zinc-200"
+                            >
+                                Deploy
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // --- Page: Setup (Env Vars) ---
+        const Setup = ({ navigate }) => {
+            const [envVars, setEnvVars] = useState([{ key: 'DATABASE_URL', value: '' }]);
+
+            const addVar = () => setEnvVars([...envVars, { key: '', value: '' }]);
+            const updateVar = (index, field, val) => {
+                const newVars = [...envVars];
+                newVars[index][field] = val;
+                setEnvVars(newVars);
+            };
+            const removeVar = (index) => setEnvVars(envVars.filter((_, i) => i !== index));
+
+            return (
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="max-w-3xl mx-auto px-6 py-24"
+                >
+                    <div className="mb-12">
+                        <div className="flex items-center gap-3 text-sm text-zinc-500 mb-4 font-mono">
+                            <span>arjunkshah</span>
+                            <span className="text-zinc-300">/</span>
+                            <span className="text-black font-medium">pincer</span>
+                        </div>
+                        <h1 className="text-3xl font-medium tracking-tight">Configure Deployment</h1>
+                        <p className="text-zinc-500 mt-2">We found a Next.js project. Just add your environment variables to proceed.</p>
+                    </div>
+
+                    <div className="space-y-8">
+                        <div>
+                            <div className="flex items-center justify-between mb-4 border-b border-zinc-100 pb-4">
+                                <h2 className="text-sm font-medium">Environment Variables</h2>
+                                <button onClick={addVar} className="text-xs flex items-center gap-1 text-zinc-500 hover:text-black transition-colors">
+                                    <IconPlus /> Add Variable
+                                </button>
+                            </div>
+
+                            <div className="space-y-3">
+                                <AnimatePresence>
+                                    {envVars.map((env, i) => (
+                                        <motion.div 
+                                            key={i}
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            className="flex items-center gap-3"
+                                        >
+                                            <input 
+                                                type="text" 
+                                                placeholder="KEY" 
+                                                value={env.key}
+                                                onChange={(e) => updateVar(i, 'key', e.target.value)}
+                                                className="flex-1 px-3 py-2 border border-zinc-200 rounded-md font-mono text-sm outline-none focus:border-black transition-colors"
+                                            />
+                                            <span className="text-zinc-300 font-mono">=</span>
+                                            <input 
+                                                type="text" 
+                                                placeholder="VALUE" 
+                                                value={env.value}
+                                                onChange={(e) => updateVar(i, 'value', e.target.value)}
+                                                className="flex-[2] px-3 py-2 border border-zinc-200 rounded-md font-mono text-sm outline-none focus:border-black transition-colors"
+                                            />
+                                            <button onClick={() => removeVar(i)} className="p-2 text-zinc-400 hover:text-red-500 transition-colors">
+                                                <IconTrash />
+                                            </button>
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                                {envVars.length === 0 && (
+                                    <div className="text-sm text-zinc-400 italic py-4">No environment variables required.</div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="pt-8 border-t border-zinc-100 flex justify-end">
+                            <button 
+                                onClick={() => navigate('building')}
+                                className="px-6 py-3 bg-black text-white text-sm font-medium rounded flex items-center gap-2 hover:bg-zinc-800 transition-colors"
+                            >
+                                Start Deployment <IconArrowRight />
+                            </button>
+                        </div>
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // --- Page: Building (Logs) ---
+        const Building = ({ navigate }) => {
+            const [logs, setLogs] = useState([]);
+            const [status, setStatus] = useState('building'); // building, success
+            
+            const mockLogs = [
+                "Cloning repository arjunkshah/pincer...",
+                "Resolving dependencies using pnpm...",
+                "Running build script 'pnpm run build'...",
+                "info  - Linting and checking validity of types...",
+                "info  - Creating an optimized production build...",
+                "info  - Compiled successfully",
+                "info  - Collecting page data...",
+                "info  - Generating static pages (5/5)",
+                "info  - Finalizing build output...",
+                "Deployment successful. Assigning domains..."
+            ];
+
+            useEffect(() => {
+                let currentIndex = 0;
+                const interval = setInterval(() => {
+                    if (currentIndex < mockLogs.length) {
+                        setLogs(prev => [...prev, mockLogs[currentIndex]]);
+                        currentIndex++;
+                    } else {
+                        clearInterval(interval);
+                        setStatus('success');
+                    }
+                }, 600);
+                return () => clearInterval(interval);
+            }, []);
+
+            return (
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="max-w-4xl mx-auto px-6 py-24"
+                >
+                    <div className="flex items-center justify-between mb-8">
+                        <div>
+                            <h1 className="text-2xl font-medium tracking-tight flex items-center gap-3">
+                                {status === 'building' ? (
+                                    <><div className="w-2 h-2 rounded-full bg-zinc-300 animate-pulse"></div> Building pincer</>
+                                ) : (
+                                    <><div className="w-2 h-2 rounded-full bg-black"></div> Deployment Complete</>
+                                )}
+                            </h1>
+                            <p className="text-zinc-500 text-sm mt-1 font-mono">ID: dpl_8f92a1x</p>
+                        </div>
+                        
+                        <AnimatePresence>
+                            {status === 'success' && (
+                                <motion.button 
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
+                                    onClick={() => navigate('dashboard')}
+                                    className="px-4 py-2 bg-white border border-zinc-200 text-black text-sm font-medium rounded hover:border-black transition-colors"
+                                >
+                                    Go to Dashboard
+                                </motion.button>
+                            )}
+                        </AnimatePresence>
+                    </div>
+
+                    <div className="bg-[#fafafa] border border-zinc-200 rounded-lg p-6 font-mono text-sm h-[50vh] overflow-y-auto no-scrollbar relative shadow-inner">
+                        <div className="space-y-2">
+                            {logs.map((log, i) => (
+                                <motion.div 
+                                    key={i}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className={`${log.includes('successful') ? 'text-black font-medium' : 'text-zinc-500'}`}
+                                >
+                                    <span className="text-zinc-300 mr-4 select-none">{String(i + 1).padStart(2, '0')}</span>
+                                    {log}
+                                </motion.div>
+                            ))}
+                            {status === 'building' && (
+                                <div className="text-zinc-400 flex items-center mt-4">
+                                    <span className="text-zinc-300 mr-4 select-none">{String(logs.length + 1).padStart(2, '0')}</span>
+                                    <span className="w-2 h-4 bg-zinc-400 animate-[blink_1s_step-end_infinite]"></span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // --- Page: Dashboard ---
+        const Dashboard = ({ navigate }) => {
+            const projects = [
+                { name: 'pincer', repo: 'arjunkshah/pincer', status: 'ready', url: 'pincer.deploydotcom.vercel.app', time: 'Just now' },
+                { name: 'portfolio-v3', repo: 'arjunkshah/portfolio', status: 'ready', url: 'portfolio.arjunkshah.com', time: '2d ago' },
+                { name: 'api-service', repo: 'arjunkshah/api-go', status: 'error', url: '-', time: '5d ago' },
+            ];
+
+            return (
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="max-w-5xl mx-auto px-6 py-24"
+                >
+                    <div className="flex items-center justify-between mb-12">
+                        <h1 className="text-3xl font-medium tracking-tight">Projects</h1>
+                        <button onClick={() => navigate('home')} className="text-sm font-medium border border-zinc-200 px-4 py-2 rounded hover:border-black transition-colors">
+                            New Project
+                        </button>
+                    </div>
+
+                    <div className="border border-zinc-200 rounded-lg overflow-hidden bg-white">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-zinc-50 border-b border-zinc-200 text-zinc-500 font-medium">
+                                <tr>
+                                    <th className="px-6 py-4 font-normal">Project</th>
+                                    <th className="px-6 py-4 font-normal">Status</th>
+                                    <th className="px-6 py-4 font-normal">Domain</th>
+                                    <th className="px-6 py-4 font-normal text-right">Updated</th>
+                                    <th className="px-6 py-4 font-normal w-12"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-zinc-100">
+                                {projects.map((p, i) => (
+                                    <tr key={i} className="hover:bg-zinc-50/50 transition-colors group cursor-pointer" onClick={() => navigate('settings')}>
+                                        <td className="px-6 py-4">
+                                            <div className="font-medium text-black">{p.name}</div>
+                                            <div className="text-zinc-400 font-mono text-xs mt-1">{p.repo}</div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-2 h-2 rounded-full ${p.status === 'ready' ? 'bg-black' : 'bg-red-500'}`}></div>
+                                                <span className="capitalize text-zinc-600">{p.status}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 font-mono text-zinc-600">
+                                            {p.url !== '-' ? (
+                                                <a href="#" className="hover:text-black flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
+                                                    {p.url} <IconExternalLink />
+                                                </a>
+                                            ) : '-'}
+                                        </td>
+                                        <td className="px-6 py-4 text-right text-zinc-400">{p.time}</td>
+                                        <td className="px-6 py-4 text-zinc-300 group-hover:text-black transition-colors">
+                                            <IconSettings />
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // --- Page: Settings ---
+        const Settings = ({ navigate }) => {
+            return (
+                <motion.div 
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                    className="max-w-4xl mx-auto px-6 py-24 flex gap-12"
+                >
+                    <aside className="w-48 shrink-0">
+                        <div className="font-medium mb-6">pincer</div>
+                        <nav className="space-y-1 text-sm text-zinc-500">
+                            <a href="#" className="block py-1.5 text-black font-medium">General</a>
+                            <a href="#" className="block py-1.5 hover:text-black">Domains</a>
+                            <a href="#" className="block py-1.5 hover:text-black">Environment Variables</a>
+                            <a href="#" className="block py-1.5 hover:text-black">Git Integration</a>
+                        </nav>
+                    </aside>
+
+                    <div className="flex-1 space-y-12">
+                        <section>
+                            <h2 className="text-xl font-medium mb-6 border-b border-zinc-100 pb-4">Project Name</h2>
+                            <div className="flex gap-4 max-w-md">
+                                <input type="text" defaultValue="pincer" className="flex-1 px-3 py-2 border border-zinc-200 rounded-md text-sm outline-none focus:border-black" />
+                                <button className="px-4 py-2 bg-black text-white text-sm font-medium rounded">Save</button>
+                            </div>
+                        </section>
+
+                        <section>
+                            <h2 className="text-xl font-medium mb-6 border-b border-zinc-100 pb-4">Root Directory</h2>
+                            <p className="text-sm text-zinc-500 mb-4">The directory within your project where the code is located. Leave blank if it's the root.</p>
+                            <div className="flex gap-4 max-w-md">
+                                <input type="text" placeholder="./" className="flex-1 px-3 py-2 border border-zinc-200 rounded-md font-mono text-sm outline-none focus:border-black" />
+                                <button className="px-4 py-2 border border-zinc-200 text-black text-sm font-medium rounded hover:border-black">Save</button>
+                            </div>
+                        </section>
+
+                        <section className="pt-12 border-t border-zinc-100">
+                            <h2 className="text-xl font-medium text-red-600 mb-6">Danger Zone</h2>
+                            <div className="border border-red-200 rounded-lg p-6 flex items-center justify-between">
+                                <div>
+                                    <h3 className="font-medium">Delete Project</h3>
+                                    <p className="text-sm text-zinc-500 mt-1">This action cannot be undone. This will permanently delete the project.</p>
+                                </div>
+                                <button className="px-4 py-2 bg-red-50 text-red-600 border border-red-200 text-sm font-medium rounded hover:bg-red-600 hover:text-white transition-colors">
+                                    Delete
+                                </button>
+                            </div>
+                        </section>
+                    </div>
+                </motion.div>
+            );
+        };
+
+        // --- Main App / Router ---
+        const App = () => {
+            const [currentPath, setCurrentPath] = useState('home');
+
+            const renderPage = () => {
+                switch(currentPath) {
+                    case 'home': return <Home navigate={setCurrentPath} key="home" />;
+                    case 'setup': return <Setup navigate={setCurrentPath} key="setup" />;
+                    case 'building': return <Building navigate={setCurrentPath} key="building" />;
+                    case 'dashboard': return <Dashboard navigate={setCurrentPath} key="dashboard" />;
+                    case 'settings': return <Settings navigate={setCurrentPath} key="settings" />;
+                    default: return <Home navigate={setCurrentPath} key="home" />;
+                }
+            };
+
+            return (
+                <Layout currentPath={currentPath} navigate={setCurrentPath}>
+                    <AnimatePresence mode="wait">
+                        {renderPage()}
+                    </AnimatePresence>
+                </Layout>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
