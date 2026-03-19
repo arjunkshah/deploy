@@ -9,11 +9,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
     const resolvedParams = await params;
     const deploymentId = resolvedParams.id;
     if (!deploymentId || Array.isArray(deploymentId)) {
+      console.log("[status] invalid deployment id");
       return NextResponse.json({ error: "Missing deployment id" }, { status: 400 });
     }
+    console.log("[status] checking deployment", deploymentId);
 
     const job = await jobs.getJob(deploymentId);
     if (job) {
+      console.log("[status] job found", { id: job.id, status: job.status });
       const isReady = job.status === "READY";
       const isError = job.status === "ERROR";
       const status = isReady ? "READY" : isError ? "ERROR" : "BUILDING";
@@ -27,6 +30,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
     }
 
     const record = await db.getDeployment(deploymentId);
+    console.log("[status] no job found, checking Vercel", { id: deploymentId, hasRecord: Boolean(record) });
 
     const vercelStatus = await vercel.getDeploymentStatus(deploymentId);
     const status =
@@ -46,6 +50,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
       .map((event) => `${new Date(event.created).toLocaleTimeString()} - ${event.payload?.text ?? event.type}`)
       .join("\n");
 
+    console.log("[status] Vercel status", { id: deploymentId, readyState: vercelStatus.readyState });
     return NextResponse.json({
       status,
       step: vercelStatus.readyState,
@@ -54,6 +59,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
       logs
     });
   } catch (error) {
+    console.log("[status] error", error instanceof Error ? error.message : error);
     const message = error instanceof Error ? error.message : "Unexpected error";
     const status = message.includes("404") ? 404 : 500;
     return NextResponse.json({ error: message }, { status });

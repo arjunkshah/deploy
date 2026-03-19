@@ -6,6 +6,8 @@ const path = require("node:path");
 const { sql } = require("@vercel/postgres");
 
 const POLL_INTERVAL_MS = Number(process.env.DEPLOY_WORKER_POLL_MS ?? "5000");
+const LOG_PREFIX = "[worker]";
+let idleLoops = 0;
 
 const CREATE_JOBS_TABLE = `
 CREATE TABLE IF NOT EXISTS deploy_jobs (
@@ -25,6 +27,7 @@ CREATE TABLE IF NOT EXISTS deploy_jobs (
 );`;
 
 async function ensureJobsTable() {
+  console.log(`${LOG_PREFIX} ensuring deploy_jobs table exists`);
   await sql.query(CREATE_JOBS_TABLE);
 }
 
@@ -43,11 +46,22 @@ async function claimNextJob() {
     WHERE id IN (SELECT id FROM next_job)
     RETURNING id, owner, repo, branch, env_vars, project_name, user_email;
   `;
-  return rows[0] ?? null;
+  const job = rows[0] ?? null;
+  if (!job) {
+    idleLoops += 1;
+    if (idleLoops % 6 === 0) {
+      console.log(`${LOG_PREFIX} no queued jobs, sleeping`, { pollMs: POLL_INTERVAL_MS });
+    }
+    return null;
+  }
+  idleLoops = 0;
+  console.log(`${LOG_PREFIX} claimed job`, { id: job.id, repo: `${job.owner}/${job.repo}` });
+  return job;
 }
 
 async function appendJobLog(id, chunk) {
   const trimmed = String(chunk).replace(/\u0000/g, "");
+  if (!trimmed.trim()) return;
   await sql`
     UPDATE deploy_jobs
     SET logs = CASE
@@ -60,6 +74,7 @@ async function appendJobLog(id, chunk) {
 }
 
 async function setJobStatus(id, status, options = {}) {
+  console.log(`${LOG_PREFIX} status update`, { id, status, url: options.url ?? null });
   await sql`
     UPDATE deploy_jobs
     SET status = ${status},
@@ -71,6 +86,7 @@ async function setJobStatus(id, status, options = {}) {
 }
 
 async function updateDeploymentRecord(id, status, url) {
+  console.log(`${LOG_PREFIX} deployment record update`, { id, status, url: url ?? null });
   await sql`
     UPDATE deployments
     SET status = ${status}, url = COALESCE(${url ?? null}, url)
@@ -80,10 +96,15 @@ async function updateDeploymentRecord(id, status, url) {
 
 function runCommand(command, args, options, onChunk) {
   return new Promise((resolve, reject) => {
+    console.log(`${LOG_PREFIX} run command`, {
+      command,
+      args: args.map((arg) => (arg === process.env.VERCEL_TOKEN ? "***" : arg))
+    });
     const child = spawn(command, args, options);
     child.stdout.on("data", (data) => onChunk(String(data)));
     child.stderr.on("data", (data) => onChunk(String(data)));
     child.on("close", (code) => {
+      console.log(`${LOG_PREFIX} command finished`, { command, code });
       if (code === 0) {
         resolve();
       } else {
@@ -100,6 +121,11 @@ function extractUrls(text) {
 }
 
 async function handleJob(job) {
+  console.log(`${LOG_PREFIX} handling job`, {
+    id: job.id,
+    repo: `${job.owner}/${job.repo}`,
+    branch: job.branch
+  });
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "deploy-worker-"));
   let latestUrl = null;
   let buffer = "";
@@ -117,6 +143,7 @@ async function handleJob(job) {
     const urls = extractUrls(chunk);
     if (urls.length) {
       latestUrl = urls[urls.length - 1];
+      console.log(`${LOG_PREFIX} detected deployment url`, { id: job.id, url: latestUrl });
     }
     if (!flushTimer) {
       flushTimer = setTimeout(async () => {
@@ -128,6 +155,7 @@ async function handleJob(job) {
 
   try {
     const repoUrl = `https://github.com/${job.owner}/${job.repo}.git`;
+    console.log(`${LOG_PREFIX} cloning repo`, { id: job.id, repoUrl });
     await setJobStatus(job.id, "CLONING");
     await updateDeploymentRecord(job.id, "BUILDING");
     queueLog(`Cloning ${repoUrl}\n`);
@@ -143,6 +171,7 @@ async function handleJob(job) {
 
     const envArgs = [];
     const envVars = job.env_vars ?? {};
+    console.log(`${LOG_PREFIX} preparing env vars`, { id: job.id, count: Object.keys(envVars).length });
     for (const [key, value] of Object.entries(envVars)) {
       envArgs.push("-e", `${key}=${value}`);
       envArgs.push("-b", `${key}=${value}`);
@@ -168,20 +197,24 @@ async function handleJob(job) {
     await flushLogs();
     const finalUrl = latestUrl;
     if (!finalUrl) {
+      console.log(`${LOG_PREFIX} missing deployment url`, { id: job.id });
       throw new Error("Deployment completed but no URL was detected.");
     }
 
+    console.log(`${LOG_PREFIX} deployment ready`, { id: job.id, url: finalUrl });
     await setJobStatus(job.id, "READY", { url: finalUrl });
     await updateDeploymentRecord(job.id, "READY", finalUrl);
   } catch (error) {
     await flushLogs();
     const message = error instanceof Error ? error.message : "Deployment failed";
+    console.error(`${LOG_PREFIX} job failed`, { id: job.id, message });
     await setJobStatus(job.id, "ERROR", { error: message });
     await updateDeploymentRecord(job.id, "ERROR");
   } finally {
     if (flushTimer) {
       clearTimeout(flushTimer);
     }
+    console.log(`${LOG_PREFIX} cleaning temp dir`, { id: job.id, tempDir });
     await fs.rm(tempDir, { recursive: true, force: true });
   }
 }
@@ -191,12 +224,15 @@ async function main() {
     throw new Error("Missing VERCEL_TOKEN for worker.");
   }
 
+  console.log(`${LOG_PREFIX} starting worker`, { pollMs: POLL_INTERVAL_MS });
   await ensureJobsTable();
 
   while (true) {
     const job = await claimNextJob();
     if (job) {
+      console.log(`${LOG_PREFIX} processing job`, { id: job.id });
       await handleJob(job);
+      console.log(`${LOG_PREFIX} job complete`, { id: job.id });
     } else {
       await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL_MS));
     }

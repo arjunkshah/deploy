@@ -46,6 +46,7 @@ const normalizeStatus = (value: unknown): JobStatus => {
 };
 
 async function ensureJobsTable() {
+  console.log("[jobs] ensuring deploy_jobs table");
   await sql.query(CREATE_JOBS_TABLE);
 }
 
@@ -59,6 +60,12 @@ export async function createJob(record: {
   userEmail?: string | null;
 }) {
   await ensureJobsTable();
+  console.log("[jobs] creating job", {
+    id: record.id,
+    repo: `${record.owner}/${record.repo}`,
+    branch: record.branch,
+    envCount: Object.keys(record.envVars ?? {}).length
+  });
   await sql`
     INSERT INTO deploy_jobs (id, owner, repo, branch, env_vars, status, project_name, user_email)
     VALUES (
@@ -76,6 +83,7 @@ export async function createJob(record: {
 
 export async function getJob(id: string): Promise<DeployJob | null> {
   await ensureJobsTable();
+  console.log("[jobs] fetching job", { id });
   const { rows } = await sql`
     SELECT id, owner, repo, branch, env_vars, status, project_name, url, logs, error, user_email, created_at, updated_at
     FROM deploy_jobs
@@ -103,6 +111,7 @@ export async function getJob(id: string): Promise<DeployJob | null> {
 
 export async function claimNextJob(): Promise<DeployJob | null> {
   await ensureJobsTable();
+  console.log("[jobs] claiming next job");
   const { rows } = await sql`
     WITH next_job AS (
       SELECT id
@@ -138,6 +147,7 @@ export async function claimNextJob(): Promise<DeployJob | null> {
 export async function appendJobLog(id: string, chunk: string) {
   await ensureJobsTable();
   const trimmed = chunk.replace(/\u0000/g, "");
+  if (!trimmed.trim()) return;
   await sql`
     UPDATE deploy_jobs
     SET logs = CASE
@@ -151,6 +161,7 @@ export async function appendJobLog(id: string, chunk: string) {
 
 export async function setJobStatus(id: string, status: JobStatus, options?: { url?: string | null; error?: string | null }) {
   await ensureJobsTable();
+  console.log("[jobs] setting status", { id, status });
   await sql`
     UPDATE deploy_jobs
     SET status = ${status},

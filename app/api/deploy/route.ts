@@ -49,15 +49,19 @@ function isMissingGitHubApp(error: unknown) {
 
 export async function POST(request: Request) {
   try {
+    console.log("[deploy] request received");
     const session = await getAuthSession();
     if (!session) {
+      console.log("[deploy] missing session");
       return NextResponse.json({ error: "Authentication required" }, { status: 401 });
     }
     const userEmail = session.user?.email ?? null;
+    console.log("[deploy] authenticated user", userEmail ?? "unknown");
 
     const ip = getClientIp(request);
     const rate = checkRateLimit(ip);
     if (!rate.ok) {
+      console.log("[deploy] rate limit hit", { ip });
       return NextResponse.json(
         { error: "Rate limit exceeded. Please slow down." },
         { status: 429, headers: { "Retry-After": `${Math.ceil(rate.retryAfter / 1000)}` } }
@@ -66,8 +70,19 @@ export async function POST(request: Request) {
 
     const json = await request.json();
     const parsed = bodySchema.parse(json);
+    console.log("[deploy] parsed payload", {
+      owner: parsed.owner,
+      repo: parsed.repo,
+      branch: parsed.branch,
+      envCount: parsed.envVars?.length ?? 0
+    });
 
     const repoData = await github.getRepo(parsed.owner, parsed.repo);
+    console.log("[deploy] repo validated", {
+      fullName: repoData.full_name,
+      defaultBranch: repoData.default_branch,
+      sizeKb: repoData.size
+    });
     const envVars = normalizeEnvVars(parsed.envVars ?? []);
     const projectName = sanitizeProjectName(`deploy-${parsed.owner}-${parsed.repo}-${Date.now()}`);
     const ref = parsed.branch || repoData.default_branch;
@@ -76,6 +91,7 @@ export async function POST(request: Request) {
     const useWorker = process.env.DEPLOY_USE_WORKER !== "false";
 
     if (useWorker) {
+      console.log("[deploy] enqueueing worker job");
       const jobId = crypto.randomUUID();
       const projectName = sanitizeProjectName(`deploy-${parsed.owner}-${parsed.repo}-${Date.now()}`);
       await jobs.createJob({
@@ -87,6 +103,7 @@ export async function POST(request: Request) {
         projectName,
         userEmail
       });
+      console.log("[deploy] job created", { jobId, projectName });
 
       await db.insertDeployment({
         id: jobId,
@@ -98,11 +115,13 @@ export async function POST(request: Request) {
         status: "QUEUED",
         userEmail
       });
+      console.log("[deploy] deployment row created", { jobId });
 
       return NextResponse.json({ deploymentId: jobId, queued: true });
     }
 
     const deployFromGit = async () => {
+      console.log("[deploy] attempting GitHub App deploy");
       const project = await vercel.createProject({
         name: projectName,
         gitRepository: { type: "github", repo: `${parsed.owner}/${parsed.repo}` },
@@ -113,14 +132,17 @@ export async function POST(request: Request) {
 
       try {
         if (envVars.length) {
+          console.log("[deploy] setting env vars", { count: envVars.length });
           await vercel.setEnvVars(project.id, envVars);
         }
 
+        console.log("[deploy] triggering Vercel deploy", { projectId: project.id, ref });
         const deployment = await vercel.triggerDeploy({
           projectId: project.id,
           ref,
           repoId: repoData.id
         });
+        console.log("[deploy] deployment triggered", { deploymentId: deployment.id });
 
         await db.insertDeployment({
           id: deployment.id,
@@ -139,12 +161,14 @@ export async function POST(request: Request) {
           url: deployment.url
         });
       } catch (error) {
+        console.log("[deploy] git deploy failed, cleaning project", { projectId: project.id });
         await vercel.deleteProject(project.id).catch(() => null);
         throw error;
       }
     };
 
     const deployFromArchive = async () => {
+      console.log("[deploy] falling back to archive deploy");
       const archive = await github.downloadRepoArchive(parsed.owner, parsed.repo, ref);
       const { files, stats, cleanup } = await extractTarballToUploadedFiles(archive);
       if (files.length === 0) {
@@ -159,12 +183,15 @@ export async function POST(request: Request) {
           buildCommand: null,
           outputDirectory: null
         });
+        console.log("[deploy] project created for archive", { projectId: project.id });
 
         if (envVars.length) {
+          console.log("[deploy] setting env vars", { count: envVars.length });
           await vercel.setEnvVars(project.id, envVars);
         }
 
         const inline = shouldInlineFiles(stats);
+        console.log("[deploy] archive stats", { inline, files: files.length, bytes: stats.totalBytes });
         let deploymentFiles:
           | vercel.InlineFileInput[]
           | { file: string; sha: string; size: number; mode?: number }[];
@@ -181,6 +208,7 @@ export async function POST(request: Request) {
             })
           );
         } else {
+          console.log("[deploy] uploading files to Vercel");
           for (const file of files) {
             const buffer = await fs.readFile(file.absolutePath as string);
             await vercel.uploadDeploymentFile(file.sha, buffer);
@@ -193,6 +221,7 @@ export async function POST(request: Request) {
           }));
         }
 
+        console.log("[deploy] creating deployment from files");
         const deployment = await vercel.createDeploymentFromFiles({
           name: projectName,
           projectId: project.id,
@@ -222,6 +251,7 @@ export async function POST(request: Request) {
           url: deployment.url
         });
       } catch (error) {
+        console.log("[deploy] archive deploy failed", error instanceof Error ? error.message : error);
         throw error;
       } finally {
         await cleanup();
@@ -234,6 +264,7 @@ export async function POST(request: Request) {
       if (!isMissingGitHubApp(error)) {
         throw error;
       }
+      console.log("[deploy] GitHub App missing or unauthorized");
       if (repoSizeKb > archiveLimitKb) {
         return NextResponse.json(
           {
@@ -248,6 +279,7 @@ export async function POST(request: Request) {
 
     return await deployFromArchive();
   } catch (error) {
+    console.log("[deploy] error", error instanceof Error ? error.message : error);
     if (error instanceof vercel.VercelApiError) {
       return NextResponse.json(
         { error: error.message, actionUrl: error.link },
