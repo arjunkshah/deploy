@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 
 import { DeployForm } from "@/components/DeployForm";
 import { SiteHeader } from "@/components/SiteHeader";
+import { getAuthSession } from "@/lib/auth";
 import { parseEnvQuery } from "@/lib/env";
 import * as github from "@/lib/github";
 import { parseSlug } from "@/lib/slug";
@@ -35,6 +36,9 @@ export default async function DeployPage({
     return notFound();
   }
 
+  const session = await getAuthSession();
+  const isAuthenticated = Boolean(session?.user);
+
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
       <SiteHeader />
@@ -46,6 +50,7 @@ export default async function DeployPage({
           initialBranch={branchParam}
           initialEnv={envPreset}
           repoDescription={repo.description}
+          isAuthenticated={isAuthenticated}
         />
       </div>
     </div>

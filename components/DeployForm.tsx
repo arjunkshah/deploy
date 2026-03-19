@@ -20,6 +20,7 @@ interface DeployFormProps {
   stars?: number;
   language?: string | null;
   readmeSnippet?: string | null;
+  isAuthenticated?: boolean;
 }
 
 export function DeployForm({
@@ -28,7 +29,8 @@ export function DeployForm({
   defaultBranch = "main",
   initialBranch,
   initialEnv = [],
-  repoDescription
+  repoDescription,
+  isAuthenticated = false
 }: DeployFormProps) {
   const router = useRouter();
   const branch = initialBranch ?? defaultBranch;
@@ -44,6 +46,11 @@ export function DeployForm({
 
   const handleDeploy = async () => {
     try {
+      if (!isAuthenticated) {
+        const returnTo = `/${encodeURIComponent(`${owner}/${repo}`)}`;
+        router.push(`/login?returnTo=${encodeURIComponent(returnTo)}` as Route);
+        return;
+      }
       setSubmitting(true);
       setError(null);
       const body = {
@@ -127,13 +134,18 @@ export function DeployForm({
               )}
             </div>
           )}
+          {!isAuthenticated && (
+            <p className="text-xs text-muted-foreground">
+              Sign in is required before starting a deployment.
+            </p>
+          )}
           <MagneticButton
             type="button"
             onClick={handleDeploy}
             disabled={submitting}
             className="flex w-full items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-60"
           >
-            {submitting ? "Deploying..." : "Start deployment"}
+            {submitting ? "Deploying..." : isAuthenticated ? "Start deployment" : "Sign in to deploy"}
             {!submitting && <ArrowRightIcon className="h-4 w-4" />}
           </MagneticButton>
         </div>
