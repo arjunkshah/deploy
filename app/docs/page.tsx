@@ -11,6 +11,7 @@ const sections = [
   { id: "url-format", label: "URL format" },
   { id: "env-vars", label: "Environment variables" },
   { id: "auth", label: "Authentication" },
+  { id: "agentbar", label: "AgentBar widget" },
   { id: "worker", label: "Worker (large repos)" },
   { id: "api", label: "API" },
   { id: "domains", label: "Custom domains" },
@@ -135,6 +136,28 @@ POST /api/deploy
 GOOGLE_CLIENT_SECRET=...
 NEXTAUTH_SECRET=...
 NEXTAUTH_URL=https://deploydotcom.vercel.app`}
+            </pre>
+          </section>
+
+          <section id="agentbar" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">AgentBar widget</h2>
+            <p className="text-sm text-muted-foreground">
+              Deploy.com ships with the AgentBar script embedded at the root layout. Update the data attributes to
+              change behavior and branding.
+            </p>
+            <pre className="overflow-x-auto rounded-xl border border-border/70 bg-muted/30 p-4 text-xs text-muted-foreground">
+{`<script
+  src="https://agent-pug.vercel.app/agentbar.js"
+  data-site="arjunshah.com"
+  data-api="https://agent-pug.vercel.app"
+  data-depth="1"
+  data-max-pages="15"
+  data-theme-color="#059669"
+  data-position="right"
+  data-title="Site Assistant"
+  data-subtitle="Ask anything about this site."
+  data-button-label="Ask"
+></script>`}
             </pre>
           </section>
 
