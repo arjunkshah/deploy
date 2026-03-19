@@ -2,6 +2,21 @@
 
 Ship any public GitHub repository to Vercel from a URL like `deploy.com/owner/repo`. Branch, env vars, live logs, QR codes, and automatic 7-day cleanup included. Large repos are handled by a VM-backed worker that runs `git clone` + `vercel deploy --prod`.
 
+## Features
+- URL-based deploys for public GitHub repos
+- Branch selection and env var injection
+- Live logs and shareable status links
+- Custom domains per deployment
+- Auth-gated deploys (Google + email/password)
+- Automatic cleanup after 7 days
+- Worker queue for large repos
+
+## Docs
+- Website docs: `/docs`
+- API docs: `docs/api.md`
+- Worker docs: `docs/worker.md`
+- Testing docs: `docs/testing.md`
+
 ## Stack
 - Next.js 16 App Router + TypeScript
 - Tailwind CSS + shadcn/ui + next-themes
@@ -38,6 +53,18 @@ curl -X POST http://localhost:3000/api/deploy \
 - Seed sample rows in `db/seed.sql`
 - Runtime table creation happens automatically via `lib/db.ts`
 
+## Repo layout
+- `app/` Next.js routes and pages
+- `components/` shared UI components
+- `lib/` server logic, API wrappers, DB helpers
+- `docs/` project documentation
+- `worker/` VM worker for large repos
+
+## Testing
+- Unit tests: `npm run test`
+- Health check: `npm run healthcheck`
+- Load test: `npm run loadtest`
+
 ## Deploy to Vercel (one command)
 ```bash
 npm install && npm run build && vercel deploy --prebuilt --prod --env GITHUB_TOKEN --env VERCEL_TOKEN --env POSTGRES_URL
@@ -61,6 +88,9 @@ The API queues jobs into `deploy_jobs`, and the worker processes them, writing l
 
 ### Cron cleanup
 Add a Vercel cron job hitting `/api/cleanup` daily to delete stale projects and rows.
+
+## Contributing
+See `CONTRIBUTING.md`, `CODE_OF_CONDUCT.md`, and `SECURITY.md`.
 
 ## UX Notes
 - Landing page auto-parses `github.com/user/repo` into `deploy.com/user/repo`.

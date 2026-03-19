@@ -6,6 +6,7 @@ export const dynamic = "force-static";
 
 const sections = [
   { id: "overview", label: "Overview" },
+  { id: "features", label: "Features" },
   { id: "quickstart", label: "Quickstart" },
   { id: "url-format", label: "URL format" },
   { id: "env-vars", label: "Environment variables" },
@@ -14,6 +15,7 @@ const sections = [
   { id: "api", label: "API" },
   { id: "domains", label: "Custom domains" },
   { id: "cleanup", label: "Cleanup" },
+  { id: "testing", label: "Testing" },
   { id: "troubleshooting", label: "Troubleshooting" }
 ];
 
@@ -40,6 +42,17 @@ export default function DocsPage() {
         </aside>
 
         <div className="space-y-16">
+          <div className="flex gap-2 overflow-x-auto pb-2 text-xs text-muted-foreground lg:hidden">
+            {sections.map((section) => (
+              <Link
+                key={section.id}
+                href={`#${section.id}`}
+                className="whitespace-nowrap rounded-full border border-border/70 bg-card px-3 py-1 text-foreground"
+              >
+                {section.label}
+              </Link>
+            ))}
+          </div>
           <section id="overview" className="space-y-4">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Overview</p>
             <h1 className="text-4xl font-semibold tracking-tight text-foreground">Deploy.com documentation</h1>
@@ -47,6 +60,29 @@ export default function DocsPage() {
               Deploy.com lets anyone deploy a public GitHub repository by swapping the domain. It validates the repo,
               queues a deployment, and streams status updates until the live URL is ready.
             </p>
+            <div className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-muted-foreground">
+              Open-source friendly: issue templates, CI checks, and docs live alongside the app code.
+            </div>
+          </section>
+
+          <section id="features" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Features</h2>
+            <div className="grid gap-4 md:grid-cols-2">
+              {[
+                "URL-based deploys",
+                "Branch and env support",
+                "Live build logs",
+                "Shareable status links",
+                "Custom domains",
+                "Auth-gated deploys",
+                "Automatic cleanup",
+                "Worker for large repos"
+              ].map((feature) => (
+                <div key={feature} className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-foreground">
+                  {feature}
+                </div>
+              ))}
+            </div>
           </section>
 
           <section id="quickstart" className="space-y-4">
@@ -148,6 +184,18 @@ DEPLOY_WORKER_POLL_MS=5000`}
               Deployments expire after 7 days. Trigger `/api/cleanup` via a Vercel cron to remove expired projects and
               database rows.
             </p>
+          </section>
+
+          <section id="testing" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">Testing</h2>
+            <p className="text-sm text-muted-foreground">
+              Use the built-in healthcheck and load testing scripts to validate behavior under stress.
+            </p>
+            <pre className="overflow-x-auto rounded-xl border border-border/70 bg-muted/30 p-4 text-xs text-muted-foreground">
+{`npm run test
+npm run healthcheck
+npm run loadtest`}
+            </pre>
           </section>
 
           <section id="troubleshooting" className="space-y-4">

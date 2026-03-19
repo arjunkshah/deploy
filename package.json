@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "healthcheck": "node scripts/healthcheck.js",
+    "loadtest": "node scripts/loadtest.js"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.6",
@@ -34,8 +38,10 @@
     "@types/node": "^20.11.19",
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.18",
+    "autocannon": "^7.12.0",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.1.7",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
   }
 }
