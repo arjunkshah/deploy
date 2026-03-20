@@ -8,6 +8,7 @@ const { sql } = require("@vercel/postgres");
 const POLL_INTERVAL_MS = Number(process.env.DEPLOY_WORKER_POLL_MS ?? "5000");
 const LOG_PREFIX = "[worker]";
 let idleLoops = 0;
+const WORKER_ID = process.env.DEPLOY_WORKER_ID ?? "main";
 
 const CREATE_JOBS_TABLE = `
 CREATE TABLE IF NOT EXISTS deploy_jobs (
@@ -26,9 +27,29 @@ CREATE TABLE IF NOT EXISTS deploy_jobs (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );`;
 
+const CREATE_WORKER_TABLE = `
+CREATE TABLE IF NOT EXISTS deploy_worker_heartbeat (
+  id TEXT PRIMARY KEY,
+  status TEXT,
+  last_seen TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);`;
+
 async function ensureJobsTable() {
   console.log(`${LOG_PREFIX} ensuring deploy_jobs table exists`);
   await sql.query(CREATE_JOBS_TABLE);
+}
+
+async function ensureWorkerTable() {
+  await sql.query(CREATE_WORKER_TABLE);
+}
+
+async function heartbeat(status) {
+  await ensureWorkerTable();
+  await sql`
+    INSERT INTO deploy_worker_heartbeat (id, status, last_seen)
+    VALUES (${WORKER_ID}, ${status}, NOW())
+    ON CONFLICT (id) DO UPDATE SET status = ${status}, last_seen = NOW();
+  `;
 }
 
 async function claimNextJob() {
@@ -126,6 +147,7 @@ async function handleJob(job) {
     repo: `${job.owner}/${job.repo}`,
     branch: job.branch
   });
+  await heartbeat("busy");
   const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "deploy-worker-"));
   let latestUrl = null;
   let buffer = "";
@@ -214,6 +236,7 @@ async function handleJob(job) {
     if (flushTimer) {
       clearTimeout(flushTimer);
     }
+    await heartbeat("idle");
     console.log(`${LOG_PREFIX} cleaning temp dir`, { id: job.id, tempDir });
     await fs.rm(tempDir, { recursive: true, force: true });
   }
@@ -226,8 +249,10 @@ async function main() {
 
   console.log(`${LOG_PREFIX} starting worker`, { pollMs: POLL_INTERVAL_MS });
   await ensureJobsTable();
+  await ensureWorkerTable();
 
   while (true) {
+    await heartbeat("idle");
     const job = await claimNextJob();
     if (job) {
       console.log(`${LOG_PREFIX} processing job`, { id: job.id });

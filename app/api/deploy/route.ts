@@ -88,7 +88,34 @@ export async function POST(request: Request) {
     const ref = parsed.branch || repoData.default_branch;
     const repoSizeKb = repoData.size ?? 0;
     const archiveLimitKb = 120_000;
-    const useWorker = process.env.DEPLOY_USE_WORKER !== "false";
+    const workerRequired = repoSizeKb > archiveLimitKb;
+    const workerPreferred = process.env.DEPLOY_USE_WORKER === "true";
+    let useWorker = workerRequired || workerPreferred;
+
+    if (useWorker) {
+      const workerOnline = await jobs.isWorkerOnline();
+      if (!workerOnline) {
+        if (workerRequired) {
+          return NextResponse.json(
+            {
+              error: "Worker is offline. Start the worker VM to deploy large repositories.",
+              actionUrl: "/docs#worker"
+            },
+            { status: 503 }
+          );
+        }
+        if (workerPreferred) {
+          return NextResponse.json(
+            {
+              error: "Worker is offline. Start the worker VM or disable DEPLOY_USE_WORKER.",
+              actionUrl: "/docs#worker"
+            },
+            { status: 503 }
+          );
+        }
+        useWorker = false;
+      }
+    }
 
     if (useWorker) {
       console.log("[deploy] enqueueing worker job");

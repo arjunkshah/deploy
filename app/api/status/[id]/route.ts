@@ -20,12 +20,19 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
       const isReady = job.status === "READY";
       const isError = job.status === "ERROR";
       const status = isReady ? "READY" : isError ? "ERROR" : "BUILDING";
+      let logs = job.logs ?? job.error ?? "Queued for deployment.";
+      if (job.status === "QUEUED") {
+        const workerOnline = await jobs.isWorkerOnline();
+        if (!workerOnline) {
+          logs = "Worker is offline. Start the worker VM to process queued deployments.";
+        }
+      }
       return NextResponse.json({
         status,
         step: job.status,
         url: job.url ?? null,
         ready: status === "READY",
-        logs: job.logs ?? job.error ?? "Queued for deployment."
+        logs
       });
     }
 

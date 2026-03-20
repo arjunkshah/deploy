@@ -35,6 +35,13 @@ CREATE TABLE IF NOT EXISTS deploy_jobs (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );`;
 
+const CREATE_WORKER_TABLE = `
+CREATE TABLE IF NOT EXISTS deploy_worker_heartbeat (
+  id TEXT PRIMARY KEY,
+  status TEXT,
+  last_seen TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);`;
+
 const toDate = (value: unknown) => (value instanceof Date ? value : new Date(value as string));
 
 const normalizeStatus = (value: unknown): JobStatus => {
@@ -48,6 +55,31 @@ const normalizeStatus = (value: unknown): JobStatus => {
 async function ensureJobsTable() {
   console.log("[jobs] ensuring deploy_jobs table");
   await sql.query(CREATE_JOBS_TABLE);
+}
+
+async function ensureWorkerTable() {
+  await sql.query(CREATE_WORKER_TABLE);
+}
+
+export async function getWorkerHeartbeat() {
+  await ensureWorkerTable();
+  const { rows } = await sql`
+    SELECT status, last_seen
+    FROM deploy_worker_heartbeat
+    WHERE id = 'main'
+    LIMIT 1;
+  `;
+  if (!rows.length) return null;
+  return {
+    status: rows[0].status ?? "unknown",
+    lastSeen: toDate(rows[0].last_seen)
+  };
+}
+
+export async function isWorkerOnline(timeoutMs = 60_000) {
+  const heartbeat = await getWorkerHeartbeat();
+  if (!heartbeat) return false;
+  return Date.now() - heartbeat.lastSeen.getTime() < timeoutMs;
 }
 
 export async function createJob(record: {
