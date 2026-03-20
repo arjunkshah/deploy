@@ -36,6 +36,8 @@ export default async function StatusPage({
   const record = await db.getDeployment(deploymentId);
   const envCount = record ? Object.keys(record.envVars ?? {}).length : 0;
   const repoUrl = `https://github.com/${parsed.owner}/${parsed.repo}`;
+  const displayUrl = record?.url ? record.url.replace(/^https?:\/\//, "") : null;
+  const hrefUrl = displayUrl ? `https://${displayUrl}` : null;
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
@@ -80,9 +82,9 @@ export default async function StatusPage({
           <div className="rounded-2xl border border-border/70 bg-card p-6 text-sm text-muted-foreground">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Actions</p>
             <div className="mt-4 flex flex-col gap-3">
-              {record?.url && (
+              {hrefUrl && (
                 <a
-                  href={`https://${record.url}`}
+                  href={hrefUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="rounded-full border border-border/70 bg-background px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:border-foreground/40"

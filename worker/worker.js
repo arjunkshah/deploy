@@ -141,6 +141,11 @@ function extractUrls(text) {
   return matches.filter((url) => url.includes("vercel.app"));
 }
 
+function stripProtocol(value) {
+  if (!value) return value;
+  return String(value).replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
 async function handleJob(job) {
   console.log(`${LOG_PREFIX} handling job`, {
     id: job.id,
@@ -230,9 +235,10 @@ async function handleJob(job) {
       throw new Error("Deployment completed but no URL was detected.");
     }
 
-    console.log(`${LOG_PREFIX} deployment ready`, { id: job.id, url: finalUrl });
-    await setJobStatus(job.id, "READY", { url: finalUrl });
-    await updateDeploymentRecord(job.id, "READY", finalUrl);
+    const normalizedUrl = stripProtocol(finalUrl);
+    console.log(`${LOG_PREFIX} deployment ready`, { id: job.id, url: normalizedUrl });
+    await setJobStatus(job.id, "READY", { url: normalizedUrl });
+    await updateDeploymentRecord(job.id, "READY", normalizedUrl);
   } catch (error) {
     await flushLogs();
     const message = error instanceof Error ? error.message : "Deployment failed";

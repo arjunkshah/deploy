@@ -171,7 +171,8 @@ export default function DashboardPage() {
       const slug = encodeURIComponent(repo);
       const settingsHref = `/settings/${slug}` as Route;
       const statusHref = `/${slug}/status/${deployment.id}` as Route;
-      const domain = deployment.url ? `https://${deployment.url}` : "-";
+      const displayDomain = deployment.url ? deployment.url.replace(/^https?:\/\//, "") : null;
+      const domain = displayDomain ? `https://${displayDomain}` : "-";
       const status = deployment.status ?? "ERROR";
       const statusLabel = status.toLowerCase();
       const isReady = status === "READY";
@@ -415,7 +416,7 @@ export default function DashboardPage() {
                           target="_blank"
                           rel="noreferrer"
                         >
-                          {deployment.url}
+                          {displayDomain}
                           <ExternalLinkIcon className="h-3.5 w-3.5" />
                         </a>
                       ) : (

@@ -60,11 +60,13 @@ export function BuildStatus({ deploymentId, initialUrl, repoPath }: BuildStatusP
   const repoName = repoPath.split("/").pop() ?? repoPath;
   const steps = ["QUEUED", "CLONING", "DEPLOYING", "READY"] as const;
   const activeIndex = steps.indexOf(step === "ERROR" ? "DEPLOYING" : step);
+  const displayUrl = url ? url.replace(/^https?:\/\//, "") : null;
+  const hrefUrl = displayUrl ? `https://${displayUrl}` : null;
 
   const handleCopy = async () => {
-    if (!url) return;
+    if (!hrefUrl) return;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(hrefUrl);
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
@@ -94,15 +96,15 @@ export function BuildStatus({ deploymentId, initialUrl, repoPath }: BuildStatusP
             )}
           </h1>
           <p className="mt-2 font-mono text-xs text-muted-foreground">ID: {deploymentId}</p>
-          {url && status === "READY" && (
+          {hrefUrl && status === "READY" && (
             <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
               <a
-                href={url}
+                href={hrefUrl}
                 className="font-medium text-foreground underline underline-offset-4"
                 target="_blank"
                 rel="noreferrer"
               >
-                {url}
+                {displayUrl}
               </a>
               <button
                 type="button"
@@ -154,14 +156,14 @@ export function BuildStatus({ deploymentId, initialUrl, repoPath }: BuildStatusP
         {step === "ERROR" && <p className="text-rose-600">Deployment failed. Check the logs below.</p>}
       </div>
 
-      {url && status === "READY" && (
+      {hrefUrl && status === "READY" && (
         <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/70 bg-background p-4 text-xs text-muted-foreground">
           <div className="space-y-2">
             <div className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Share</div>
             <p>Scan the code or copy the URL to share the live deployment.</p>
           </div>
           <div className="rounded-xl border border-border/70 bg-card p-2">
-            <QRCodeSVG value={url} size={84} bgColor="transparent" fgColor="#0f172a" level="M" />
+            <QRCodeSVG value={hrefUrl} size={84} bgColor="transparent" fgColor="#0f172a" level="M" />
           </div>
         </div>
       )}

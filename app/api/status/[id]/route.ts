@@ -14,6 +14,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
     }
     console.log("[status] checking deployment", deploymentId);
 
+    const stripProtocol = (value: string | null | undefined) => {
+      if (!value) return null;
+      return String(value).replace(/^https?:\/\//, "").replace(/\/$/, "");
+    };
+
     const job = await jobs.getJob(deploymentId);
     if (job) {
       console.log("[status] job found", { id: job.id, status: job.status });
@@ -35,7 +40,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
         return NextResponse.json({
           status: "ERROR",
           step: "ERROR",
-          url: job.url ?? null,
+          url: stripProtocol(job.url),
           ready: false,
           logs: "Deployment timed out. Restart the worker and retry."
         });
@@ -43,7 +48,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
       return NextResponse.json({
         status,
         step: job.status,
-        url: job.url ?? null,
+        url: stripProtocol(job.url),
         ready: status === "READY",
         logs
       });
@@ -74,7 +79,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
     return NextResponse.json({
       status,
       step: vercelStatus.readyState,
-      url: `https://${vercelStatus.url}`,
+      url: stripProtocol(vercelStatus.url),
       ready: status === "READY",
       logs
     });
