@@ -183,6 +183,7 @@ export default function DashboardPage() {
         settingsHref,
         statusHref,
         domain,
+        displayDomain,
         statusLabel,
         isReady
       };
@@ -376,27 +377,28 @@ export default function DashboardPage() {
             <tbody className="divide-y divide-border/70">
               {isLoading && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-6 py-8 text-sm text-muted-foreground">
                     Loading deployments...
                   </td>
                 </tr>
               )}
               {!isLoading && error && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-sm text-rose-600">
+                  <td colSpan={6} className="px-6 py-8 text-sm text-rose-600">
                     {error}
                   </td>
                 </tr>
               )}
               {!isLoading && rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-6 py-8 text-sm text-muted-foreground">
+                  <td colSpan={6} className="px-6 py-8 text-sm text-muted-foreground">
                     No deployments yet. Create your first deploy from the home page.
                   </td>
                 </tr>
               )}
               {!isLoading &&
-                rows.map(({ deployment, repo, repoName, settingsHref, statusHref, domain, statusLabel, isReady }) => (
+                rows.map(
+                  ({ deployment, repo, repoName, settingsHref, statusHref, domain, displayDomain, statusLabel, isReady }) => (
                   <tr key={deployment.id} className="group cursor-pointer transition-colors hover:bg-muted/40">
                     <td className="px-6 py-4">
                       <div className="font-medium text-foreground">{repoName}</div>
@@ -442,7 +444,8 @@ export default function DashboardPage() {
                       </Link>
                     </td>
                   </tr>
-                ))}
+                  )
+                )}
             </tbody>
           </table>
         </div>
