@@ -4,7 +4,7 @@ import type { Route } from "next";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { ExternalLinkIcon, GearIcon } from "@radix-ui/react-icons";
+import { ArrowRightIcon, ExternalLinkIcon, GearIcon } from "@radix-ui/react-icons";
 
 import { SiteHeaderClient } from "@/components/SiteHeaderClient";
 
