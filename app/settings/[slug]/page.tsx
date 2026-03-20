@@ -25,8 +25,8 @@ export default async function SettingsPage({ params }: { params?: Promise<{ slug
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
       <SiteHeader active="dashboard" />
-      <main className="mx-auto flex max-w-5xl gap-12 px-6 py-24">
-        <aside className="w-56 shrink-0">
+      <main className="mx-auto grid max-w-6xl gap-10 px-6 py-24 lg:grid-cols-[220px_1fr]">
+        <aside className="space-y-6">
           <div className="mb-6 text-sm uppercase tracking-[0.3em] text-muted-foreground">Settings</div>
           <div className="mb-8 text-xl font-semibold text-foreground">{parsed.repo}</div>
           <nav className="space-y-1 text-sm text-muted-foreground">
@@ -43,12 +43,16 @@ export default async function SettingsPage({ params }: { params?: Promise<{ slug
               Git Integration
             </a>
           </nav>
+          <div className="rounded-2xl border border-border/70 bg-card p-4 text-xs text-muted-foreground">
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Repo</div>
+            <div className="mt-2 font-mono text-foreground">{repoPath}</div>
+          </div>
         </aside>
 
         <div className="flex-1 space-y-12">
-          <section>
-            <h2 className="mb-6 border-b border-border/70 pb-4 text-xl font-semibold text-foreground">Project name</h2>
-            <div className="flex max-w-md gap-4">
+          <section className="rounded-2xl border border-border/70 bg-card p-6">
+            <h2 className="mb-6 text-xl font-semibold text-foreground">Project name</h2>
+            <div className="flex flex-wrap gap-4">
               <input
                 type="text"
                 defaultValue={parsed.repo}
@@ -60,12 +64,12 @@ export default async function SettingsPage({ params }: { params?: Promise<{ slug
             </div>
           </section>
 
-          <section>
-            <h2 className="mb-6 border-b border-border/70 pb-4 text-xl font-semibold text-foreground">Root directory</h2>
+          <section className="rounded-2xl border border-border/70 bg-card p-6">
+            <h2 className="mb-4 text-xl font-semibold text-foreground">Root directory</h2>
             <p className="mb-4 text-sm text-muted-foreground">
               The directory within your project where the code is located. Leave blank if it&apos;s the root.
             </p>
-            <div className="flex max-w-md gap-4">
+            <div className="flex flex-wrap gap-4">
               <input
                 type="text"
                 placeholder="./"
@@ -77,8 +81,8 @@ export default async function SettingsPage({ params }: { params?: Promise<{ slug
             </div>
           </section>
 
-          <section>
-            <h2 className="mb-6 border-b border-border/70 pb-4 text-xl font-semibold text-foreground">Domains</h2>
+          <section className="rounded-2xl border border-border/70 bg-card p-6">
+            <h2 className="mb-4 text-xl font-semibold text-foreground">Domains</h2>
             <p className="mb-4 text-sm text-muted-foreground">Add custom domains to point at this deployment.</p>
             <DomainsManager
               repo={repoPath}
@@ -86,9 +90,9 @@ export default async function SettingsPage({ params }: { params?: Promise<{ slug
             />
           </section>
 
-          <section className="border-t border-border/70 pt-12">
+          <section className="rounded-2xl border border-rose-200 bg-rose-50/60 p-6">
             <h2 className="mb-6 text-xl font-semibold text-rose-600">Danger zone</h2>
-            <div className="flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50/60 p-6">
+            <div className="flex items-center justify-between">
               <div>
                 <h3 className="font-medium">Delete Project</h3>
                 <p className="mt-1 text-sm text-muted-foreground">

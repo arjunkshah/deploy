@@ -12,6 +12,7 @@ export function DomainsManager({ repo, initialDomains }: DomainsManagerProps) {
   const [value, setValue] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
 
   const handleAdd = async () => {
     if (!value.trim()) return;
@@ -53,6 +54,16 @@ export function DomainsManager({ repo, initialDomains }: DomainsManagerProps) {
     }
   };
 
+  const handleCopy = async (domain: string) => {
+    try {
+      await navigator.clipboard.writeText(domain);
+      setCopied(domain);
+      setTimeout(() => setCopied(null), 2000);
+    } catch {
+      setCopied(null);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex max-w-md gap-4">
@@ -80,14 +91,24 @@ export function DomainsManager({ repo, initialDomains }: DomainsManagerProps) {
         {domains.map((domain) => (
           <div key={domain.id} className="flex items-center justify-between rounded-xl border border-border/70 bg-card px-4 py-3">
             <div className="font-mono text-sm text-foreground">{domain.domain}</div>
-            <button
-              type="button"
-              onClick={() => handleRemove(domain.domain)}
-              className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-rose-600"
-              disabled={loading}
-            >
-              Remove
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleCopy(domain.domain)}
+                className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-foreground"
+                disabled={loading}
+              >
+                {copied === domain.domain ? "Copied" : "Copy"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRemove(domain.domain)}
+                className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-rose-600"
+                disabled={loading}
+              >
+                Remove
+              </button>
+            </div>
           </div>
         ))}
       </div>
