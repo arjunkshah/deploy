@@ -36,6 +36,9 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [workerStatus, setWorkerStatus] = useState<WorkerStatus | null>(null);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<DeploymentStatus | "ALL">("ALL");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -101,7 +104,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [session.status]);
+  }, [session.status, refreshKey]);
 
   useEffect(() => {
     let active = true;
@@ -129,13 +132,21 @@ export default function DashboardPage() {
       active = false;
       clearInterval(interval);
     };
-  }, [session.status]);
+  }, [session.status, refreshKey]);
 
   const email = session.status === "authenticated" ? session.email ?? null : null;
   const isLoading = session.status === "loading" || loading;
 
   const rows = useMemo(() => {
-    return deployments.map((deployment) => {
+    const normalizedQuery = query.trim().toLowerCase();
+    const filtered = deployments.filter((deployment) => {
+      const repo = deployment.repo ?? "";
+      const matchesQuery = normalizedQuery ? repo.toLowerCase().includes(normalizedQuery) : true;
+      const matchesStatus = statusFilter === "ALL" ? true : deployment.status === statusFilter;
+      return matchesQuery && matchesStatus;
+    });
+
+    return filtered.map((deployment) => {
       const repo = deployment.repo ?? "unknown/repo";
       const repoName = repo.split("/")[1] ?? repo;
       const slug = encodeURIComponent(repo);
@@ -154,13 +165,23 @@ export default function DashboardPage() {
         isReady
       };
     });
+  }, [deployments, query, statusFilter]);
+
+  const stats = useMemo(() => {
+    const total = deployments.length;
+    const ready = deployments.filter((deployment) => deployment.status === "READY").length;
+    const building = deployments.filter((deployment) =>
+      deployment.status === "BUILDING" || deployment.status === "QUEUED"
+    ).length;
+    const errorCount = deployments.filter((deployment) => deployment.status === "ERROR").length;
+    return { total, ready, building, errorCount };
   }, [deployments]);
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
       <SiteHeaderClient active="dashboard" authenticated={session.status === "authenticated"} email={email} />
       <main className="mx-auto max-w-6xl px-6 py-24">
-        <div className="mb-12 flex flex-wrap items-center justify-between gap-6">
+        <div className="mb-10 flex flex-wrap items-center justify-between gap-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Deployments</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Projects</h1>
@@ -178,12 +199,75 @@ export default function DashboardPage() {
               </div>
             )}
           </div>
-          <Link
-            href="/"
-            className="rounded-full border border-border/80 bg-card px-5 py-2 text-xs font-semibold text-foreground transition-colors hover:border-foreground/40"
-          >
-            New Project
-          </Link>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setRefreshKey((prev) => prev + 1)}
+              className="rounded-full border border-border/80 bg-card px-4 py-2 text-xs font-semibold text-foreground transition-colors hover:border-foreground/40"
+            >
+              Refresh
+            </button>
+            <Link
+              href="/"
+              className="rounded-full border border-border/80 bg-card px-5 py-2 text-xs font-semibold text-foreground transition-colors hover:border-foreground/40"
+            >
+              New Project
+            </Link>
+          </div>
+        </div>
+
+        <div className="mb-8 grid gap-4 rounded-2xl border border-border/70 bg-card p-5 text-sm text-muted-foreground lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-2">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Overview</p>
+            <div className="flex flex-wrap gap-6 text-sm">
+              <div>
+                <div className="text-xs text-muted-foreground">Total</div>
+                <div className="text-lg font-semibold text-foreground">{stats.total}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Ready</div>
+                <div className="text-lg font-semibold text-foreground">{stats.ready}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Building</div>
+                <div className="text-lg font-semibold text-foreground">{stats.building}</div>
+              </div>
+              <div>
+                <div className="text-xs text-muted-foreground">Errors</div>
+                <div className="text-lg font-semibold text-foreground">{stats.errorCount}</div>
+              </div>
+            </div>
+          </div>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground" htmlFor="search">
+                Search
+              </label>
+              <input
+                id="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search by repo name"
+                className="mt-2 w-full rounded-xl border border-border/70 bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-foreground/40"
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {(["ALL", "READY", "BUILDING", "QUEUED", "ERROR"] as const).map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setStatusFilter(status)}
+                  className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                    statusFilter === status
+                      ? "border-foreground/40 bg-foreground text-background"
+                      : "border-border/70 bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {status === "ALL" ? "All" : status.toLowerCase()}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_20px_50px_-40px_rgba(15,23,42,0.2)]">
