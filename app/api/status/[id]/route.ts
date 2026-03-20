@@ -20,12 +20,25 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id?: st
       const isReady = job.status === "READY";
       const isError = job.status === "ERROR";
       const status = isReady ? "READY" : isError ? "ERROR" : "BUILDING";
+      const updatedAt = job.updatedAt?.getTime?.() ?? Date.now();
+      const stalled = Date.now() - updatedAt > 20 * 60 * 1000;
       let logs = job.logs ?? job.error ?? "Queued for deployment.";
       if (job.status === "QUEUED") {
         const workerOnline = await jobs.isWorkerOnline();
         if (!workerOnline) {
           logs = "Worker is offline. Start the worker VM to process queued deployments.";
         }
+      }
+      if (!isReady && !isError && stalled) {
+        await jobs.setJobStatus(job.id, "ERROR", { error: "Deployment timed out. Restart the worker and retry." });
+        await db.updateDeploymentStatus(job.id, "ERROR");
+        return NextResponse.json({
+          status: "ERROR",
+          step: "ERROR",
+          url: job.url ?? null,
+          ready: false,
+          logs: "Deployment timed out. Restart the worker and retry."
+        });
       }
       return NextResponse.json({
         status,

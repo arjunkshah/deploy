@@ -199,6 +199,12 @@ async function handleJob(job) {
       envArgs.push("-b", `${key}=${value}`);
     }
 
+    const scope = process.env.VERCEL_TEAM_ID ?? process.env.VERCEL_ORG_ID ?? "";
+    const scopeArgs = scope ? ["--scope", scope] : [];
+    if (scope) {
+      console.log(`${LOG_PREFIX} using vercel scope`, { scope });
+    }
+
     queueLog("Starting Vercel deployment\n");
     await runCommand(
       "vercel",
@@ -210,9 +216,10 @@ async function handleJob(job) {
         process.env.VERCEL_TOKEN ?? "",
         "--name",
         job.project_name ?? `deploy-${job.owner}-${job.repo}`,
+        ...scopeArgs,
         ...envArgs
       ],
-      { cwd: tempDir, stdio: "pipe", env: { ...process.env } },
+      { cwd: tempDir, stdio: "pipe", env: { ...process.env, CI: "1" } },
       queueLog
     );
 
