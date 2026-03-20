@@ -65,7 +65,12 @@ export const authOptions: NextAuthOptions = {
       : [])
   ],
   session: {
-    strategy: "jwt"
+    strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 6 * 60 * 60
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60
   },
   logger: {
     error(code, metadata) {
