@@ -18,6 +18,12 @@ interface DeploymentRow {
   createdAt: string;
 }
 
+interface WorkerStatus {
+  online: boolean;
+  status: string;
+  lastSeen: string | null;
+}
+
 type SessionState =
   | { status: "loading"; email?: string | null }
   | { status: "authenticated"; email?: string | null }
@@ -29,6 +35,7 @@ export default function DashboardPage() {
   const [deployments, setDeployments] = useState<DeploymentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [workerStatus, setWorkerStatus] = useState<WorkerStatus | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -96,6 +103,34 @@ export default function DashboardPage() {
     };
   }, [session.status]);
 
+  useEffect(() => {
+    let active = true;
+    const loadWorker = async () => {
+      if (session.status !== "authenticated") return;
+      try {
+        const res = await fetch("/api/worker");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (active) {
+          setWorkerStatus({
+            online: Boolean(data.online),
+            status: data.status ?? "unknown",
+            lastSeen: data.lastSeen ?? null
+          });
+        }
+      } catch {
+        if (active) setWorkerStatus(null);
+      }
+    };
+
+    loadWorker();
+    const interval = setInterval(loadWorker, 30_000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [session.status]);
+
   const email = session.status === "authenticated" ? session.email ?? null : null;
   const isLoading = session.status === "loading" || loading;
 
@@ -129,6 +164,19 @@ export default function DashboardPage() {
           <div>
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Deployments</p>
             <h1 className="mt-2 text-3xl font-semibold tracking-tight text-foreground">Projects</h1>
+            {workerStatus && (
+              <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-border/70 bg-card px-3 py-1 text-xs text-muted-foreground">
+                <span className={`h-2 w-2 rounded-full ${workerStatus.online ? "bg-primary" : "bg-rose-500"}`} />
+                <span className="text-foreground">
+                  Worker {workerStatus.online ? "online" : "offline"}
+                </span>
+                {workerStatus.lastSeen && (
+                  <span className="text-muted-foreground">
+                    · last seen {new Date(workerStatus.lastSeen).toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
           <Link
             href="/"
