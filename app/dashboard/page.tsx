@@ -29,6 +29,19 @@ type SessionState =
   | { status: "authenticated"; email?: string | null }
   | { status: "unauthenticated"; email?: null };
 
+const formatRelative = (value: string) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unknown";
+  const diffMs = date.getTime() - Date.now();
+  const diffMins = Math.round(diffMs / 60000);
+  const diffHours = Math.round(diffMs / 3600000);
+  const diffDays = Math.round(diffMs / 86400000);
+  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
+  if (Math.abs(diffMins) < 60) return rtf.format(diffMins, "minute");
+  if (Math.abs(diffHours) < 24) return rtf.format(diffHours, "hour");
+  return rtf.format(diffDays, "day");
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [session, setSession] = useState<SessionState>({ status: "loading" });
@@ -137,9 +150,15 @@ export default function DashboardPage() {
   const email = session.status === "authenticated" ? session.email ?? null : null;
   const isLoading = session.status === "loading" || loading;
 
+  const sortedDeployments = useMemo(() => {
+    return [...deployments].sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  }, [deployments]);
+
   const rows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    const filtered = deployments.filter((deployment) => {
+    const filtered = sortedDeployments.filter((deployment) => {
       const repo = deployment.repo ?? "";
       const matchesQuery = normalizedQuery ? repo.toLowerCase().includes(normalizedQuery) : true;
       const matchesStatus = statusFilter === "ALL" ? true : deployment.status === statusFilter;
@@ -151,6 +170,7 @@ export default function DashboardPage() {
       const repoName = repo.split("/")[1] ?? repo;
       const slug = encodeURIComponent(repo);
       const settingsHref = `/settings/${slug}` as Route;
+      const statusHref = `/${slug}/status/${deployment.id}` as Route;
       const domain = deployment.url ? `https://${deployment.url}` : "-";
       const status = deployment.status ?? "ERROR";
       const statusLabel = status.toLowerCase();
@@ -160,12 +180,13 @@ export default function DashboardPage() {
         repo,
         repoName,
         settingsHref,
+        statusHref,
         domain,
         statusLabel,
         isReady
       };
     });
-  }, [deployments, query, statusFilter]);
+  }, [sortedDeployments, query, statusFilter]);
 
   const stats = useMemo(() => {
     const total = deployments.length;
@@ -176,6 +197,13 @@ export default function DashboardPage() {
     const errorCount = deployments.filter((deployment) => deployment.status === "ERROR").length;
     return { total, ready, building, errorCount };
   }, [deployments]);
+
+  const highlights = useMemo(() => {
+    const latest = sortedDeployments[0];
+    const lastReady = sortedDeployments.find((deployment) => deployment.status === "READY");
+    const lastError = sortedDeployments.find((deployment) => deployment.status === "ERROR");
+    return { latest, lastReady, lastError };
+  }, [sortedDeployments]);
 
   return (
     <div className="min-h-[100dvh] bg-background text-foreground">
@@ -270,6 +298,66 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        <div className="mb-8 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Latest activity</p>
+            <div className="mt-4 space-y-4 text-muted-foreground">
+              {highlights.latest ? (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-foreground">{highlights.latest.repo}</span>
+                    <span className="text-xs">{formatRelative(highlights.latest.createdAt)}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs">
+                    <span className="h-2 w-2 rounded-full bg-primary" />
+                    <span className="uppercase tracking-[0.2em] text-muted-foreground">
+                      {highlights.latest.status}
+                    </span>
+                    {highlights.latest.url && (
+                      <span className="font-mono text-foreground">https://{highlights.latest.url}</span>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No deployments yet.</p>
+              )}
+              {highlights.lastReady && (
+                <div className="rounded-xl border border-border/70 bg-background px-4 py-3 text-xs">
+                  <div className="text-muted-foreground">Most recent ready</div>
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="font-medium text-foreground">{highlights.lastReady.repo}</span>
+                    <span>{formatRelative(highlights.lastReady.createdAt)}</span>
+                  </div>
+                </div>
+              )}
+              {highlights.lastError && (
+                <div className="rounded-xl border border-border/70 bg-rose-500/10 px-4 py-3 text-xs text-rose-600">
+                  Last failed deploy: {highlights.lastError.repo}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm">
+            <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Quick actions</p>
+            <div className="mt-4 space-y-3">
+              {[
+                { label: "Start a new deploy", href: "/" },
+                { label: "Read the docs", href: "/docs" },
+                { label: "Manage domains", href: "/docs#domains" }
+              ].map((action) => (
+                <Link
+                  key={action.label}
+                  href={action.href}
+                  className="flex items-center justify-between rounded-xl border border-border/70 bg-background px-4 py-3 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  <span>{action.label}</span>
+                  <ArrowRightIcon className="h-3.5 w-3.5" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
         <div className="overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[0_20px_50px_-40px_rgba(15,23,42,0.2)]">
           <table className="w-full text-left text-sm">
             <thead className="border-b border-border/70 bg-muted/50 text-muted-foreground font-medium">
@@ -277,6 +365,7 @@ export default function DashboardPage() {
                 <th className="px-6 py-4 font-normal">Project</th>
                 <th className="px-6 py-4 font-normal">Status</th>
                 <th className="px-6 py-4 font-normal">Domain</th>
+                <th className="px-6 py-4 font-normal">Status URL</th>
                 <th className="px-6 py-4 text-right font-normal">Updated</th>
                 <th className="w-12 px-6 py-4 font-normal" />
               </tr>
@@ -304,7 +393,7 @@ export default function DashboardPage() {
                 </tr>
               )}
               {!isLoading &&
-                rows.map(({ deployment, repo, repoName, settingsHref, domain, statusLabel, isReady }) => (
+                rows.map(({ deployment, repo, repoName, settingsHref, statusHref, domain, statusLabel, isReady }) => (
                   <tr key={deployment.id} className="group cursor-pointer transition-colors hover:bg-muted/40">
                     <td className="px-6 py-4">
                       <div className="font-medium text-foreground">{repoName}</div>
@@ -330,6 +419,16 @@ export default function DashboardPage() {
                       ) : (
                         "-"
                       )}
+                    </td>
+                    <td className="px-6 py-4 text-muted-foreground">
+                      <Link
+                        href={statusHref}
+                        className="inline-flex items-center gap-2 text-xs font-semibold text-foreground underline underline-offset-4"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        View status
+                        <ArrowRightIcon className="h-3.5 w-3.5" />
+                      </Link>
                     </td>
                     <td className="px-6 py-4 text-right text-muted-foreground">
                       {new Date(deployment.createdAt).toLocaleString()}
