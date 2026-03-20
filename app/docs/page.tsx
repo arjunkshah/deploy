@@ -28,6 +28,7 @@ const sections = [
   { id: "operations", label: "Operations" },
   { id: "metrics", label: "Metrics" },
   { id: "faq", label: "FAQ" },
+  { id: "roadmap", label: "End goal list" },
   { id: "testing", label: "Testing" },
   { id: "troubleshooting", label: "Troubleshooting" }
 ];
@@ -421,6 +422,62 @@ SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) FROM deploy_jobs;`}
                 <p className="font-medium text-foreground">How do I extend TTL?</p>
                 <p>Update the cleanup logic and schedule in `/api/cleanup` to extend expiration windows.</p>
               </div>
+            </div>
+          </section>
+
+          <section id="roadmap" className="space-y-4">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">End goal feature list</h2>
+            <p className="text-sm text-muted-foreground">
+              The long-term target is a fully automated deployment concierge for any public repo. This list tracks the
+              end goal scope.
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {[
+                "Universal repo detection (framework-agnostic)",
+                "Multi-branch deploy pipelines",
+                "Queue-aware ETA estimates",
+                "Step-level build timeline with durations",
+                "Live logs with searchable filters",
+                "Build failure diagnostics and suggestions",
+                "Auto-detect env var templates from repo",
+                "Secret vault with per-project scopes",
+                "Team workspaces and org-level settings",
+                "Per-project RBAC and audit trails",
+                "Custom domains with DNS guidance",
+                "One-click rollback to previous deploy",
+                "Deployment history by user and repo",
+                "Webhook notifications for build status",
+                "Slack + email notifications",
+                "Status page sharing with access controls",
+                "Deploy presets for popular frameworks",
+                "Build cache insights and savings",
+                "Large-repo support via worker pools",
+                "Multi-region worker scheduling",
+                "Rate-limit tuning by plan",
+                "Analytics dashboard (time to ready, failures)",
+                "Cross-repo dependency detection",
+                "Automated README preview rendering",
+                "Public deploy links with prefilled env vars",
+                "Import from GitHub stars and orgs",
+                "Self-hosted worker mode",
+                "SAML/SSO for teams",
+                "Service health page with uptime",
+                "Billing and usage-based pricing",
+                "API tokens with scopes",
+                "CLI companion for power users",
+                "A/B testing on deploy outputs",
+                "Preview artifacts (Lighthouse, bundle stats)",
+                "Post-deploy checks and smoke tests",
+                "Geo-mapped build visualization",
+                "Data retention policies per project",
+                "Immutable build logs storage",
+                "Search across deployments and logs",
+                "Vercel and alternative deploy backends"
+              ].map((item) => (
+                <div key={item} className="rounded-xl border border-border/70 bg-card px-4 py-3 text-sm text-foreground">
+                  {item}
+                </div>
+              ))}
             </div>
           </section>
 
