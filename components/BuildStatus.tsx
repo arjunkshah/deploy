@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
+import { QRCodeSVG } from "qrcode.react";
 
 type StatusState = "IDLE" | "QUEUED" | "BUILDING" | "READY" | "ERROR";
 type StepState = "QUEUED" | "CLONING" | "DEPLOYING" | "READY" | "ERROR";
@@ -19,6 +20,7 @@ export function BuildStatus({ deploymentId, initialUrl, repoPath }: BuildStatusP
   const [url, setUrl] = useState<string | null>(initialUrl ?? null);
   const [logs, setLogs] = useState<string>("Waiting to start...");
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const normalizeStep = (value?: string): StepState => {
     const normalized = String(value ?? "").toUpperCase();
@@ -59,6 +61,17 @@ export function BuildStatus({ deploymentId, initialUrl, repoPath }: BuildStatusP
   const steps = ["QUEUED", "CLONING", "DEPLOYING", "READY"] as const;
   const activeIndex = steps.indexOf(step === "ERROR" ? "DEPLOYING" : step);
 
+  const handleCopy = async () => {
+    if (!url) return;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      setCopied(false);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -82,14 +95,23 @@ export function BuildStatus({ deploymentId, initialUrl, repoPath }: BuildStatusP
           </h1>
           <p className="mt-2 font-mono text-xs text-muted-foreground">ID: {deploymentId}</p>
           {url && status === "READY" && (
-            <a
-              href={url}
-              className="mt-3 block text-sm font-medium text-foreground underline underline-offset-4"
-              target="_blank"
-              rel="noreferrer"
-            >
-              {url}
-            </a>
+            <div className="mt-4 flex flex-wrap items-center gap-3 text-sm">
+              <a
+                href={url}
+                className="font-medium text-foreground underline underline-offset-4"
+                target="_blank"
+                rel="noreferrer"
+              >
+                {url}
+              </a>
+              <button
+                type="button"
+                onClick={handleCopy}
+                className="rounded-full border border-border/70 bg-card px-3 py-1 text-xs font-semibold text-foreground transition-colors hover:border-foreground/40"
+              >
+                {copied ? "Copied" : "Copy URL"}
+              </button>
+            </div>
           )}
         </div>
         <AnimatePresence>
@@ -131,6 +153,18 @@ export function BuildStatus({ deploymentId, initialUrl, repoPath }: BuildStatusP
         )}
         {step === "ERROR" && <p className="text-rose-600">Deployment failed. Check the logs below.</p>}
       </div>
+
+      {url && status === "READY" && (
+        <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border/70 bg-background p-4 text-xs text-muted-foreground">
+          <div className="space-y-2">
+            <div className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Share</div>
+            <p>Scan the code or copy the URL to share the live deployment.</p>
+          </div>
+          <div className="rounded-xl border border-border/70 bg-card p-2">
+            <QRCodeSVG value={url} size={84} bgColor="transparent" fgColor="#0f172a" level="M" />
+          </div>
+        </div>
+      )}
 
       <div className="relative h-[50vh] overflow-y-auto rounded-2xl border border-border/70 bg-muted/20 p-6 font-mono text-sm shadow-inner no-scrollbar">
         <div className="space-y-2">
