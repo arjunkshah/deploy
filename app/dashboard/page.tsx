@@ -340,11 +340,13 @@ export default function DashboardPage() {
           <div className="rounded-2xl border border-border/70 bg-card p-5 text-sm">
             <p className="text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">Quick actions</p>
             <div className="mt-4 space-y-3">
-              {[
-                { label: "Start a new deploy", href: "/" },
-                { label: "Read the docs", href: "/docs" },
-                { label: "Manage domains", href: "/docs#domains" }
-              ].map((action) => (
+              {(
+                [
+                  { label: "Start a new deploy", href: "/" as Route },
+                  { label: "Read the docs", href: "/docs" as Route },
+                  { label: "Manage domains", href: "/docs#domains" as Route }
+                ] as const
+              ).map((action) => (
                 <Link
                   key={action.label}
                   href={action.href}
