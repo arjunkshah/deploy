@@ -119,6 +119,7 @@ export async function triggerDeploy(input: {
       name: input.projectId,
       project: input.projectId,
       target: "production",
+      public: true,
       gitSource: {
         type: "github",
         repoId: input.repoId,
@@ -151,6 +152,7 @@ export async function createDeploymentFromFiles(input: {
     name: input.name,
     project: input.projectId,
     target: input.target ?? "production",
+    public: true,
     files: input.files,
     projectSettings: {
       framework: null,

@@ -217,6 +217,7 @@ async function handleJob(job) {
         "deploy",
         "--prod",
         "--yes",
+        "--public",
         "--token",
         process.env.VERCEL_TOKEN ?? "",
         "--name",
